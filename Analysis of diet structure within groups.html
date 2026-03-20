@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组内饮食结构分析 · 外卖消费行为对膳食质量影响</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background: #f4f7fb;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .main-title {
+            text-align: center;
+            background: white;
+            border-radius: 32px;
+            padding: 2.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+        }
+        .main-title h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0b1e33;
+            margin-bottom: 0.5rem;
+        }
+        .main-title .subtitle {
+            font-size: 1.1rem;
+            color: #54708f;
+        }
+        .section {
+            background: white;
+            border-radius: 32px;
+            padding: 2rem 2rem 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+        }
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0b1e33;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 1.4em;
+            background: linear-gradient(180deg, #2d7a9b, #5f9fc0);
+            border-radius: 4px;
+        }
+        .intro-text {
+            color: #1a3f53;
+            line-height: 1.8;
+            font-size: 1rem;
+            padding: 1.2rem 1.5rem;
+            background: #f8fbfe;
+            border-radius: 16px;
+            border-left: 4px solid #2d7a9b;
+            margin-bottom: 1.5rem;
+        }
+        .chart-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 1.8rem 1.5rem;
+            box-shadow: 0 8px 20px -6px rgba(0, 32, 64, 0.08);
+            border: 1px solid rgba(164, 192, 214, 0.25);
+            margin-bottom: 1.5rem;
+            transition: box-shadow 0.2s;
+        }
+        .chart-card:hover {
+            box-shadow: 0 20px 28px -8px rgba(21, 76, 122, 0.12);
+            border-color: #cbdbe9;
+        }
+        .chart-title {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #1a3a4f;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-title span {
+            background: #e2ecf5;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.8rem;
+            color: #1e587b;
+            font-weight: 500;
+        }
+        .canvas-container {
+            position: relative;
+            height: 340px;
+            width: 100%;
+        }
+        .canvas-container.tall {
+            height: 400px;
+        }
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 900px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .insight-box {
+            background: linear-gradient(135deg, #f8fbfe 0%, #f0f6fa 100%);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid #d9e6f2;
+        }
+        .insight-box h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0c3346;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .insight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .insight-item {
+            background: white;
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            border-left: 4px solid #3d8f9c;
+            box-shadow: 0 3px 10px rgba(0,30,50,0.05);
+        }
+        .insight-item strong {
+            color: #1a3a4f;
+        }
+        .insight-item .highlight {
+            color: #c0392b;
+            font-weight: 600;
+        }
+        .insight-item .positive {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        .footnote {
+            margin-top: 1.5rem;
+            color: #708aa5;
+            font-size: 0.9rem;
+            text-align: right;
+            border-top: 1px dashed #b9d0e2;
+            padding-top: 1rem;
+        }
+        .footnote i {
+            font-style: normal;
+            background: #e1eff9;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+        .data-table th {
+            background: #e2ecf5;
+            padding: 0.8rem;
+            text-align: center;
+            font-weight: 600;
+            color: #1a3a4f;
+            border: 1px solid #d9e2ec;
+        }
+        .data-table td {
+            padding: 0.7rem;
+            text-align: center;
+            border: 1px solid #d9e2ec;
+        }
+        .data-table tr:nth-child(even) {
+            background: #f8fbfe;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .badge-warning {
+            background: #fef3cd;
+            color: #856404;
+        }
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <!-- 主标题 -->
+    <div class="main-title">
+        <h1>🍱 组内饮食结构分析</h1>
+        <p class="subtitle">外卖消费行为对膳食质量影响的营养学验证 · 5人3日饮食监控数据</p>
+    </div>
+
+    <!-- 过渡引言 -->
+    <div class="section">
+        <div class="section-title">研究背景</div>
+        <div class="intro-text">
+            前文基于25名同学的问卷调查，系统分析了外卖消费行为与膳食质量之间的关联，得出"外卖消费行为与膳食质量的多个维度存在明确负向关联"的初步结论。为深入揭示其内在机制，本研究选取5名小组成员进行为期3日（2026年3月4日至3月6日）的饮食监控，详细记录每日三餐的热量、糖（碳水）、脂肪和蛋白质摄入数据，从客观营养学角度验证外卖消费对膳食质量的影响。
+        </div>
+        <div class="insight-box">
+            <h3>📊 数据概览</h3>
+            <div class="insight-list">
+                <div class="insight-item">监测对象：<strong>5人</strong>（男生2人，女生3人）</div>
+                <div class="insight-item">监测周期：<strong>2026年3月4日-6日</strong>（共3日）</div>
+                <div class="insight-item">外卖餐次：<strong>朱欣萌 3.5晚餐</strong>、<strong>彭紫轩 3.5中餐</strong></div>
+                <div class="insight-item">记录指标：热量(kcal)、糖(g)、脂肪(g)、蛋白质(g)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. 三日热量变化趋势 -->
+    <div class="section">
+        <div class="section-title">1 热量摄入分析</div>
+        <div class="intro-text">
+            从三日热量变化趋势来看，各成员日均热量摄入存在明显差异。男生日均热量（约3000kcal）明显高于女生（约1500-2200kcal）。值得注意的是，在订购外卖的当天（3月5日），两位成员的热量摄入均出现显著峰值。
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">📊 三日热量变化趋势 <span>按性别分组</span></div>
+            <div class="canvas-container">
+                <canvas id="caloriesTrendChart"></canvas>
+            </div>
+        </div>
+        <div class="insight-box">
+            <h3>🔍 关键发现</h3>
+            <div class="insight-list">
+                <div class="insight-item"><strong>朱欣萌</strong>：外卖日(3.5)热量 <span class="highlight">4605kcal</span>，非外卖日平均仅2189kcal，增长 <span class="highlight">110.3%</span></div>
+                <div class="insight-item"><strong>彭紫轩</strong>：外卖日(3.5)热量 <span class="highlight">2854kcal</span>，非外卖日平均1873kcal，增长 <span class="highlight">52.4%</span></div>
+                <div class="insight-item">男生日均热量超标推荐值(~2400kcal)，女生戴伊芮、毛露低于推荐值(~1800kcal)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 外卖日vs非外卖日 -->
+    <div class="section">
+        <div class="section-title">2 外卖日与非外卖日对比</div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="chart-title">📊 外卖日热量对比 <span>倍数关系</span></div>
+                <div class="canvas-container">
+                    <canvas id="takeoutCompareChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">📊 日均热量与推荐值 <span>健康参照</span></div>
+                <div class="canvas-container">
+                    <canvas id="recommendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="insight-box">
+            <h3>🔍 分析结论</h3>
+            <div class="insight-list">
+                <div class="insight-item">外卖消费导致热量摄入显著增加，增长幅度达 <span class="highlight">52%-110%</span></div>
+                <div class="insight-item">外卖日热量普遍超标，可能增加肥胖、代谢疾病风险</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 外卖餐次营养特征 -->
+    <div class="section">
+        <div class="section-title">3 外卖餐次营养特征</div>
+        <div class="chart-card">
+            <div class="chart-title">📊 外卖餐 vs 非外卖餐营养素对比 <span>同一餐次比较</span></div>
+            <div class="canvas-container tall">
+                <canvas id="mealCompareChart"></canvas>
+            </div>
+        </div>
+        <div class="insight-box">
+            <h3>🔍 外卖餐特征分析</h3>
+            <div class="insight-list">
+                <div class="insight-item"><strong>热量</strong>：朱欣萌外卖晚餐是非外卖晚餐的 <span class="highlight">3.8倍</span>，彭紫轩外卖中餐是 <span class="highlight">1.9倍</span></div>
+                <div class="insight-item"><strong>脂肪</strong>：朱欣萌外卖晚餐脂肪205g，是非外卖晚餐的 <span class="highlight">3.7倍</span></div>
+                <div class="insight-item"><strong>糖</strong>：朱欣萌外卖晚餐糖329.7g，是非外卖晚餐的 <span class="highlight">5.7倍</span></div>
+                <div class="insight-item">外卖餐次呈现明显的<strong>"高热量、高脂肪、高糖"</strong>三高特征</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 三大营养素供能比例 -->
+    <div class="section">
+        <div class="section-title">4 三大营养素供能比例</div>
+        <div class="intro-text">
+            根据中国居民膳食指南，健康的三大营养素供能比例应为：碳水50-65%、脂肪20-30%、蛋白质10-15%。下图为各成员三日平均供能比例，可直观反映膳食结构是否均衡。
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">📊 三大营养素供能比例 <span>推荐范围参照</span></div>
+            <div class="canvas-container tall">
+                <canvas id="nutritionRatioChart"></canvas>
+            </div>
+        </div>
+        <div class="insight-box">
+            <h3>🔍 营养结构问题</h3>
+            <div class="insight-list">
+                <div class="insight-item"><strong>脂肪超标</strong>：朱欣萌脂肪供能比 <span class="highlight">49.9%</span>（推荐20-30%），接近推荐值的2倍</div>
+                <div class="insight-item"><strong>整体偏高</strong>：5人中4人脂肪供能比超过30%推荐上限</div>
+                <div class="insight-item"><strong>碳水偏低</strong>：部分成员碳水供能比低于50%推荐下限</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 数据汇总表 -->
+    <div class="section">
+        <div class="section-title">5 数据汇总表</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>成员</th>
+                    <th>性别</th>
+                    <th>日均热量(kcal)</th>
+                    <th>外卖餐热量(kcal)</th>
+                    <th>糖供能(%)</th>
+                    <th>脂肪供能(%)</th>
+                    <th>蛋白质供能(%)</th>
+                    <th>评价</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>朱欣萌</td>
+                    <td>男</td>
+                    <td>2994.8</td>
+                    <td>3387(晚餐)</td>
+                    <td>38.2 <span class="badge badge-warning">偏低</span></td>
+                    <td>49.9 <span class="badge badge-danger">超标</span></td>
+                    <td>16.0</td>
+                    <td><span class="badge badge-danger">严重失衡</span></td>
+                </tr>
+                <tr>
+                    <td>戴伊芮</td>
+                    <td>女</td>
+                    <td>1500.7</td>
+                    <td>-</td>
+                    <td>56.7</td>
+                    <td>31.5 <span class="badge badge-warning">略高</span></td>
+                    <td>14.7</td>
+                    <td><span class="badge badge-warning">轻度失衡</span></td>
+                </tr>
+                <tr>
+                    <td>毛露</td>
+                    <td>女</td>
+                    <td>1662.3</td>
+                    <td>-</td>
+                    <td>44.5 <span class="badge badge-warning">偏低</span></td>
+                    <td>40.7 <span class="badge badge-danger">超标</span></td>
+                    <td>16.5</td>
+                    <td><span class="badge badge-warning">轻度失衡</span></td>
+                </tr>
+                <tr>
+                    <td>吴煜昊</td>
+                    <td>男</td>
+                    <td>2976.0</td>
+                    <td>-</td>
+                    <td>39.6 <span class="badge badge-warning">偏低</span></td>
+                    <td>42.1 <span class="badge badge-danger">超标</span></td>
+                    <td>12.3</td>
+                    <td><span class="badge badge-danger">明显失衡</span></td>
+                </tr>
+                <tr>
+                    <td>彭紫轩</td>
+                    <td>女</td>
+                    <td>2200.0</td>
+                    <td>2080(中餐)</td>
+                    <td>45.3 <span class="badge badge-warning">偏低</span></td>
+                    <td>39.0 <span class="badge badge-danger">超标</span></td>
+                    <td>16.3</td>
+                    <td><span class="badge badge-warning">轻度失衡</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 6. 结论 -->
+    <div class="section">
+        <div class="section-title">6 研究结论</div>
+        <div class="insight-box">
+            <h3>📝 主要发现</h3>
+            <div class="insight-list">
+                <div class="insight-item"><strong>① 外卖消费显著增加热量摄入</strong>：外卖日热量较非外卖日增长52%-110%，外卖餐次热量可达同类非外卖餐次的1.9-3.8倍</div>
+                <div class="insight-item"><strong>② 外卖餐次呈现"高热量、高脂肪、高糖"特征</strong>：脂肪含量是非外卖餐次的1.7-3.7倍，与外卖食品重油重盐的烹饪方式直接相关</div>
+                <div class="insight-item"><strong>③ 脂肪供能比例普遍超标</strong>：5人中4人脂肪供能比超过推荐上限(30%)，最高达49.9%，反映膳食结构严重失衡</div>
+                <div class="insight-item"><strong>④ 验证了前文假设</strong>：从客观营养数据层面证实"外卖消费行为与膳食质量负相关"的研究结论</div>
+            </div>
+        </div>
+        <div class="footnote">
+            <i>数据采集时间：2026年3月4日-6日</i> &nbsp; 图表交互：悬停显示详细数值
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // 配色方案（与前文一致）
+    const COLORS = {
+        blue: '#5f9fc0',
+        orange: '#e68c7c',
+        green: '#4f9e7a',
+        darkBlue: '#2d7a9b',
+        red: '#c0392b',
+        purple: '#9b59b6',
+        grey: '#d9e2ec'
+    };
+
+    // Chart.js 全局配置
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+    Chart.defaults.plugins.tooltip.backgroundColor = '#0f2a3b';
+    Chart.defaults.plugins.legend.position = 'bottom';
+
+    // 图表1: 三日热量变化趋势
+    const ctx1 = document.getElementById('caloriesTrendChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: ['3月4日', '3月5日', '3月6日'],
+            datasets: [
+                {
+                    label: '朱欣萌(男)',
+                    data: [2401, 4605.45, 1978],
+                    backgroundColor: COLORS.blue,
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                },
+                {
+                    label: '戴伊芮(女)',
+                    data: [1759, 1110, 1633],
+                    backgroundColor: COLORS.orange,
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                },
+                {
+                    label: '毛露(女)',
+                    data: [1735, 1726, 1526],
+                    backgroundColor: '#e8a87c',
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                },
+                {
+                    label: '吴煜昊(男)',
+                    data: [3018, 3415, 2495],
+                    backgroundColor: '#7faacc',
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                },
+                {
+                    label: '彭紫轩(女)',
+                    data: [1370, 2854, 2376],
+                    backgroundColor: COLORS.green,
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(0)} kcal`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5000,
+                    grid: { color: COLORS.grey },
+                    title: { display: true, text: '热量 (kcal)', color: '#54708f' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 图表2: 外卖日对比
+    const ctx2 = document.getElementById('takeoutCompareChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['朱欣萌', '彭紫轩'],
+            datasets: [
+                {
+                    label: '非外卖日平均',
+                    data: [2189.5, 1873.0],
+                    backgroundColor: COLORS.blue,
+                    borderRadius: 6
+                },
+                {
+                    label: '外卖日',
+                    data: [4605.45, 2854.0],
+                    backgroundColor: COLORS.orange,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(0)} kcal`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5000,
+                    grid: { color: COLORS.grey },
+                    title: { display: true, text: '热量 (kcal)', color: '#54708f' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 图表3: 日均热量与推荐值
+    const ctx3 = document.getElementById('recommendChart').getContext('2d');
+    new Chart(ctx3, {
+        type: 'bar',
+        data: {
+            labels: ['朱欣萌', '戴伊芮', '毛露', '吴煜昊', '彭紫轩'],
+            datasets: [
+                {
+                    label: '日均热量',
+                    data: [2994.8, 1500.7, 1662.3, 2976.0, 2200.0],
+                    backgroundColor: [COLORS.blue, COLORS.orange, COLORS.orange, COLORS.blue, COLORS.green],
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                annotation: {
+                    annotations: {
+                        line1: { type: 'line', yMin: 2400, yMax: 2400, borderColor: COLORS.green, borderWidth: 2, borderDash: [5,5] },
+                        line2: { type: 'line', yMin: 1800, yMax: 1800, borderColor: COLORS.purple, borderWidth: 2, borderDash: [5,5] }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `日均热量: ${ctx.raw.toFixed(0)} kcal`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 3500,
+                    grid: { color: COLORS.grey },
+                    title: { display: true, text: '日均热量 (kcal)', color: '#54708f' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 图表4: 外卖餐vs非外卖餐
+    const ctx4 = document.getElementById('mealCompareChart').getContext('2d');
+    new Chart(ctx4, {
+        type: 'bar',
+        data: {
+            labels: ['热量(kcal)', '糖(g)', '脂肪(g)', '蛋白质(g)'],
+            datasets: [
+                {
+                    label: '朱欣萌-非外卖晚餐平均',
+                    data: [899.5, 57.4, 55.2, 43.0],
+                    backgroundColor: COLORS.blue,
+                    borderRadius: 4
+                },
+                {
+                    label: '朱欣萌-外卖晚餐',
+                    data: [3387, 329.7, 205.1, 106.8],
+                    backgroundColor: COLORS.orange,
+                    borderRadius: 4
+                },
+                {
+                    label: '彭紫轩-非外卖中餐平均',
+                    data: [1103, 142, 56, 35],
+                    backgroundColor: '#7faacc',
+                    borderRadius: 4
+                },
+                {
+                    label: '彭紫轩-外卖中餐',
+                    data: [2080, 232.8, 96.5, 72.5],
+                    backgroundColor: COLORS.green,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: COLORS.grey },
+                    title: { display: true, text: '摄入量', color: '#54708f' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 图表5: 三大营养素供能比例
+    const ctx5 = document.getElementById('nutritionRatioChart').getContext('2d');
+    new Chart(ctx5, {
+        type: 'bar',
+        data: {
+            labels: ['朱欣萌', '戴伊芮', '毛露', '吴煜昊', '彭紫轩'],
+            datasets: [
+                {
+                    label: '糖(碳水)',
+                    data: [38.2, 56.7, 44.5, 39.6, 45.3],
+                    backgroundColor: COLORS.blue,
+                    borderRadius: 4
+                },
+                {
+                    label: '脂肪',
+                    data: [49.9, 31.5, 40.7, 42.1, 39.0],
+                    backgroundColor: COLORS.orange,
+                    borderRadius: 4
+                },
+                {
+                    label: '蛋白质',
+                    data: [16.0, 14.7, 16.5, 12.3, 16.3],
+                    backgroundColor: COLORS.green,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: COLORS.grey },
+                    title: { display: true, text: '供能比例 (%)', color: '#54708f' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+})();
+</script>
+</body>
+</html>
